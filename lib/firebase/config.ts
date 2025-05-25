@@ -34,14 +34,35 @@ const createMockStorage = (app: FirebaseApp): FirebaseStorage => ({
   ref: () => ({}),
 } as unknown as FirebaseStorage);
 
-// Initialize Firebase or mock services
-let firebaseApp: FirebaseApp = {} as FirebaseApp;
-let auth: Auth = createMockAuth();
-let firestore: Firestore = {} as Firestore;
-let storage: FirebaseStorage = createMockStorage(firebaseApp);
+// Initialize Firebase or mock services based on environment and config
+let firebaseApp: FirebaseApp;
+let auth: Auth;
+let firestore: Firestore;
+let storage: FirebaseStorage;
 
-// Only initialize Firebase if we have all required config values
-if (hasValidFirebaseConfig()) {
+// Lazy initialization of Firebase services
+const initializeFirebaseServices = () => {
+  // Return early if already initialized
+  if (firebaseApp) return;
+
+  // Use mock services in development when config is missing
+  if (!hasValidFirebaseConfig()) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        'Firebase configuration is incomplete. Running in development mode with mock services.\n' +
+        'To use real Firebase services, ensure all required environment variables are set in your .env.local file.'
+      );
+      firebaseApp = {} as FirebaseApp;
+      auth = createMockAuth();
+      firestore = {} as Firestore;
+      storage = createMockStorage(firebaseApp);
+      return;
+    } else {
+      throw new Error('Firebase configuration is required but missing.');
+    }
+  }
+
+  // Initialize Firebase with real services
   try {
     const firebaseConfig = {
       apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -71,8 +92,26 @@ if (hasValidFirebaseConfig()) {
   );
 }
 
-// Export the Firebase services (real or mock)
-export { firebaseApp, auth, firestore, storage };
+// Export getter functions that ensure Firebase is initialized when needed
+export const getFirebaseApp = () => {
+  initializeFirebaseServices();
+  return firebaseApp;
+};
+
+export const getFirebaseAuth = () => {
+  initializeFirebaseServices();
+  return auth;
+};
+
+export const getFirebaseFirestore = () => {
+  initializeFirebaseServices();
+  return firestore;
+};
+
+export const getFirebaseStorage = () => {
+  initializeFirebaseServices();
+  return storage;
+};
 
 // Helper function to check if Firebase is properly initialized
 export const isFirebaseInitialized = () => getApps().length > 0;
