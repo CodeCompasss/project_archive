@@ -1,12 +1,22 @@
+// types/project.ts
+export interface TeamMember {
+  member_id: number;
+  project_id: number;
+  name: string;
+  linkedin: string;
+}
+
 export interface Project {
+  project_id: number;
   projectName: string;
   projectDescription: string;
   yearOfSubmission: string;
-  department: string; // Ensure this is a string, not an array
   projectType: string;
+  department: string;
   domain: string;
   customDomain?: string;
   projectLink: string;
-  members?: { name: string; linkedin: string }[];
-  createdAt: string; // Ensure createdAt exists as a string (ISO format)
+  createdAt: string;
+  created_by_uid: number;
+  teamMembers?: TeamMember[];
 }

@@ -1,49 +1,25 @@
-"use client";
+import { InferSelectModel } from "drizzle-orm";
+import { projects } from "@/lib/db/schema";
+import { getAllProjects, getFilterData } from "@/server-action/project";
+import ProjectsWrapper from "@/components/repeto/ProjectsWrapper";
 
-import { useEffect, useState } from 'react';
-import Navbar from '@/components/Navbar';
-import ProjectGrid from '@/components/repeto/ProjectGrid';
-import FilterSection from '@/components/repeto/FilterSection';
-import TabSection from '@/components/repeto/TabSection';
-// import Footer from '@/components/Footer';
-import AddProjectFAB from '@/components/repeto/AddProjectFAB';
-import LoadingScreen from "@/components/loadingScrenn";
+export const dynamic = 'force-dynamic';
 
-  
-export default function Home() {
-  const [activeTab, setActiveTab] = useState("All");
-  const [filters, setFilters] = useState<Record<string, string[]>>({});
-  const [loading, setLoading] = useState(true); // Track loading state
+type DbProject = InferSelectModel<typeof projects>;
 
-  useEffect(() => {
-    // Simulate a loading delay
-    const timer = setTimeout(() => setLoading(false), 1500);
-    return () => clearTimeout(timer);
-  }, []);
+export default async function Home() {
+  try {
+    const [projectsResult, filtersResult] = await Promise.all([
+      getAllProjects(),
+      getFilterData()
+    ]);
 
+    const projects: DbProject[] = projectsResult.success && projectsResult.data ? projectsResult.data as DbProject[] : [];
+    const filters = filtersResult || [];
 
-  const handleClearFilters = () => {
-    // Clear all filters
-    setFilters({});
-  };
-
-  // Show the loading screen first
-  if (loading) {
-    return <LoadingScreen />;
+    return <ProjectsWrapper initialProjects={projects} initialFilters={filters} />;
+  } catch (error) {
+    console.error('Error loading data:', error);
+    return <div>Error loading data. Please try again later.</div>;
   }
-
-  return (
-    <main className="min-h-screen bg-gray-50">
-      <Navbar />
-      <div className="flex flex-col md:flex-row">
-        <FilterSection onFilterSubmit={setFilters} onClearFilters={handleClearFilters} />
-        <div className="flex-1 max-w-7xl px-4 py-6 space-y-8">
-          <TabSection activeTab={activeTab} onTabChange={setActiveTab} />
-          <ProjectGrid activeTab={activeTab} filters={filters} />
-        </div>
-        <AddProjectFAB />
-      </div>
-      {/* <Footer /> */}
-    </main>
-  );
 }
