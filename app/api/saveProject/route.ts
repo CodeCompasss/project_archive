@@ -1,23 +1,27 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createProject } from "@/server-action/project";
 
 export async function POST(req: Request) {
-  const data = await req.json();
-  const filePath = path.join(process.cwd(), "data", "projects.json");
+  try {
+    const data = await req.json();
+    const result = await createProject(data);
 
-  // Read existing projects
-  let projects = [];
-  if (fs.existsSync(filePath)) {
-    const jsonData = fs.readFileSync(filePath, "utf-8");
-    projects = JSON.parse(jsonData);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { message: "Project saved successfully!", data: result.data },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error saving project:", error);
+    return NextResponse.json(
+      { error: "Failed to save project" },
+      { status: 500 }
+    );
   }
-
-  // Add new project
-  projects.push(data);
-
-  // Save to file
-  fs.writeFileSync(filePath, JSON.stringify(projects, null, 2));
-
-  return NextResponse.json({ message: "Project saved successfully!" }, { status: 200 });
 }
